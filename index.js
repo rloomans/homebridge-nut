@@ -24,7 +24,7 @@ var sleep = require("system-sleep")
 var titleCase = require('title-case');
 var pNut, connected, started;
 
-function NutPlatform(log, config){
+function Nut2Platform(log, config){
 	this.config = config;
 	this.host = config["host"] || 'localhost';
 	this.port = config["port"] || '3493';
@@ -35,7 +35,7 @@ function NutPlatform(log, config){
 	this.nutPolling = parseInt(config["polling"] || '0');
 	this.lowBattThreshold = config["low_batt_threshold"] || '40';
 	this.log = log;
-	this.log("Starting Nut Platform on %s:%s. Polling (seconds): %s", this.host, this.port, (this.nutPolling == '0') ? 'OFF' : this.nutPolling);
+	this.log("Starting Nut2 Platform on %s:%s. Polling (seconds): %s", this.host, this.port, (this.nutPolling == '0') ? 'OFF' : this.nutPolling);
 	this.nutPolling *=1000;
 	this.initialized = false;
 	var nutAccessories, upsInfo;
@@ -51,7 +51,7 @@ function NutPlatform(log, config){
 	pNut.start();
 }
 
-NutPlatform.prototype = {
+Nut2Platform.prototype = {
 	accessories: function(callback) {
 		var that = this;
 		var foundAccessories = [];
@@ -61,11 +61,11 @@ NutPlatform.prototype = {
 			accFriendlyName = _.values(that.nutAccessories);
 			for (acc in accName) {
 				var titleName;
-				that.log("Received Nut accessory #%s %s (%s) from the %s platform.", acc, accName[acc], ((!accFriendlyName[acc]) ? 'NullDesc' : accFriendlyName[acc]), that.name);
+				that.log("Received Nut2 accessory #%s %s (%s) from the %s platform.", acc, accName[acc], ((!accFriendlyName[acc]) ? 'NullDesc' : accFriendlyName[acc]), that.name);
 				that.getInfo(accName[acc], function(err, upsInfo) {
 					if (!err) {
 						titleName = titleCase((accFriendlyName[acc] || accName[acc])); //Added in case ups.conf description is empty.
-						var accessory = new NutAccessory(that, accName[acc], titleName, upsInfo, acc);
+						var accessory = new Nut2Accessory(that, accName[acc], titleName, upsInfo, acc);
 						that.initialized = true;
 						foundAccessories.push(accessory);
 					} else {
@@ -81,10 +81,10 @@ NutPlatform.prototype = {
 		var that = this;
 		if (!that.initialized) {
 			connected = true;
-			this.log.debug("Nut eventReady received. Initializing and getting list of Nut accessories.");
+			this.log.debug("Nut2 eventReady received. Initializing and getting list of Nut accessories.");
 			pNut.GetUPSList(function(upslist, err) {
 				if (err) {
-					that.log.error;('Nut ERROR initializing: ' + err);
+					that.log.error;('Nut2 ERROR initializing: ' + err);
 				}
 				else {
 					that.nutAccessories = upslist;
@@ -92,7 +92,7 @@ NutPlatform.prototype = {
 			});
 		} else {
 			connected = true;
-			this.log.debug("Nut eventReady received. Successful reconnect after disconnection.");
+			this.log.debug("Nut2 eventReady received. Successful reconnect after disconnection.");
 		}
 	},
 
@@ -100,11 +100,11 @@ NutPlatform.prototype = {
 		var that = this;
 		connected = false;
 		started = false;
-		this.log.debug("Nut eventDisconnect occured.");
+		this.log.debug("Nut2 eventDisconnect occured.");
 	},
 
 	eventError: function(error) {
-		this.log.error("Nut eventError received - %s.", error);
+		this.log.error("Nut2 eventError received - %s.", error);
 	},
 
 	getInfo: function(upsName, callback) {
@@ -123,7 +123,7 @@ NutPlatform.prototype = {
 	}
 }
 
-function NutAccessory(platform, accessory, accessoryFriendly, accessoryVars, accCount) {
+function Nut2Accessory(platform, accessory, accessoryFriendly, accessoryVars, accCount) {
 	this.nutName = accessory;
 	this.name = accessoryFriendly;
 	this.accVars = accessoryVars;
@@ -131,46 +131,46 @@ function NutAccessory(platform, accessory, accessoryFriendly, accessoryVars, acc
 	this.log = this.platform.log;
 	this.lowBattThreshold = this.platform.lowBattThreshold;
 	this.delay = (parseInt(accCount)+1)*this.platform.accDelay;
-	this.log.debug("Nut Platform polling delay is: %s, Accessory %s delay is: %s", this.platform.nutPolling/1000, this.name, this.delay/1000);
+	this.log.debug("Nut2 Platform polling delay is: %s, Accessory %s delay is: %s", this.platform.nutPolling/1000, this.name, this.delay/1000);
 	if (this.platform.nutPolling > 0) {
 		var that = this;
 		setTimeout(function() {
-			that.log.debug('Nut Service Polling begin for %s...', that.name);
+			that.log.debug('Nut2 Service Polling begin for %s...', that.name);
 			that.servicePolling();
 		}, this.platform.nutPolling);
 	};
 }
 
-NutAccessory.prototype = {
+Nut2Accessory.prototype = {
 
 	identify: function(callback){
-		this.log.debug("Nut Identify requested for %s!", this.name);
+		this.log.debug("Nut2 Identify requested for %s!", this.name);
 		callback();
 	},
 
 	getCheck: function(callback){
 		var that = this;
-		this.log.debug('Nut checking connection to Nut Server for %s.', this.name);
+		this.log.debug('Nut2 checking connection to Nut Server for %s.', this.name);
 		if (connected) {
-			this.log.debug('Nut connection to Nut Server Successful.');
+			this.log.debug('Nut2 connection to Nut Server Successful.');
 			this.log.debug('Nut refreshing delay %s for %s', this.delay/1000, this.name);
 			sleep(parseInt(this.delay));
 			that.getVars(function(callback) {}.bind(this));
 		} else {
 			if (!started) {
 				started = true;
-				this.log.debug('Nut not connected, attempting reconnection.');
+				this.log.debug('Nut2 not connected, attempting reconnection.');
 				pNut.start();
 				sleep(this.platform.nutListTimeout);
 			} else {
-				this.log.debug('Nut not connected, waiting on prior reconnection attempt...');
+				this.log.debug('Nut2 not connected, waiting on prior reconnection attempt...');
 			}
-			this.log.debug('Nut refreshing delay %s for %s',this.delay/1000, this.name);
+			this.log.debug('Nut2 refreshing delay %s for %s',this.delay/1000, this.name);
 			sleep(parseInt(this.delay));
 			if (connected) {
 				that.getVars(function (callback) {}.bind(that));
 			} else {
-				that.log.error('Nut unable to reconnect!');
+				that.log.error('Nut2 unable to reconnect!');
 				that.service.setCharacteristic(Characteristic.StatusFault,1);
 			  }
 		}
@@ -179,11 +179,11 @@ NutAccessory.prototype = {
 
     getVars: function(callback){
 			var that = this;
-			this.log.debug('Nut now getting vars for %s.', this.name);
+			this.log.debug('Nut2 now getting vars for %s.', this.name);
 			if (connected) {
 				this.platform.getInfo(this.nutName, function(err, upsInfo) {
 					if (!err) {
-						this.log.debug('Nut now updating vars for %s.', this.name);
+						this.log.debug('Nut2 now updating vars for %s.', this.name);
 						that.serviceInfo.setCharacteristic(Characteristic.Manufacturer, upsInfo["device.mfr"] || upsInfo["ups.vendorid"] || 'No Manufacturer');
 						that.serviceInfo.setCharacteristic(Characteristic.SerialNumber, upsInfo["ups.serial"] || 'No Serial#')
 						that.serviceInfo.setCharacteristic(Characteristic.Model, upsInfo["device.model"] || upsInfo["ups.productid"] || 'No Model#');
@@ -219,12 +219,12 @@ NutAccessory.prototype = {
 							that.service.setCharacteristic(Characteristic.ContactSensorState,0);
 						}
 					} else {
-						that.log.error("Nut Error: %s", err);
+						that.log.error("Nut2 Error: %s", err);
 						that.service.setCharacteristic(Characteristic.StatusFault,1);
 					}
 				}.bind(this));
 			} else {
-				this.log.error('Nut request failed. Not connected.');
+				this.log.error('Nut2 request failed. Not connected.');
 				that.service.setCharacteristic(Characteristic.StatusFault,1);
 			}
 		callback();
@@ -232,7 +232,7 @@ NutAccessory.prototype = {
 
 	servicePolling: function(){
 		var that = this;
-		this.log.debug('Nut is Polling for %s with polling delay of %s seconds.', this.name, that.platform.nutPolling/1000);
+		this.log.debug('Nut2 is Polling for %s with polling delay of %s seconds.', this.name, that.platform.nutPolling/1000);
 		this.getCheck(function (callback) {
 			setTimeout(function() {
 				that.servicePolling();
@@ -274,8 +274,8 @@ NutAccessory.prototype = {
     }
 }
 
-module.exports.accessory = NutAccessory;
-module.exports.platform = NutPlatform;
+module.exports.accessory = Nut2Accessory;
+module.exports.platform = Nut2Platform;
 
 var Service, Characteristic, EnterpriseTypes;
 
@@ -284,6 +284,6 @@ module.exports = function(homebridge) {
   Characteristic = homebridge.hap.Characteristic;
   EnterpriseTypes = require('./types.js')(homebridge);
 
-  homebridge.registerAccessory("homebridge-nut-accessory", "NutAccessory", NutAccessory);
-  homebridge.registerPlatform("homebridge-nut", "Nut", NutPlatform);
+  homebridge.registerAccessory("homebridge-nut2-accessory", "Nut2Accessory", Nut2Accessory);
+  homebridge.registerPlatform("homebridge-nut2", "Nut2", Nut2Platform);
 };
